@@ -1,7 +1,11 @@
 <?php
+/*
+ * 参考URL： https://code-notes.com/lesson/4
+ */
 
 require_once '.\functions.php';
-require_once '.\class.php';
+require_once '.\classes.php';
+require_once '.\exceptions.php';
 
 session_start();
 
@@ -15,55 +19,77 @@ const DATE = 'date';
 const TEXT = 'text';
 const IMG_FILE = 'img_file';
 
+// 表示するメモデータを格納する
 $memoData;
-$dirPath;
 
+// セッションにMEMOのインスタンスがある場合$memoDataに格納する
 if (!empty($_SESSION['memoData'])) {
     $memoData = unserialize($_SESSION['memoData']);
+    try {
+        // 表示させるメモデータをファイルから読み込む
+        $memoData->loadFile();
+    } catch(InvalidFileException $e) {
+        popUpAlert($e->getMessage());
+        unset($_SESSION['memoData']);
+        
+        header("Location: memoApp.php");
+        exit;
+    }
 }
 
-// 作成者の名前を受け取る
-if (!empty($_POST['memoname'])) {
-    $name = $_POST['memoname'];
-    $dirPath = generateDirPath($name, DIR_NAME);
-    $memoData = new Memo($name, $dirPath.SAVE_NAME);
+// memoNameを受け取る
+if (isset($_POST['memoname'])) {
+    $memoName = $_POST['memoname'];
+    try {
+        $memoData = new Memo($memoName);
+    } catch (RuntimeException $e) {
+        popUpAlert($e->getMessage());
+        
+        header("Location: memoApp.php");
+        exit;
+    }
     $_SESSION['memoData'] = serialize($memoData);
+    
     header("Location: memoApp.php");
     exit;
 }
 
 // メモの追加を受け取る
-if (!empty($_POST['text']) || !empty($_FILES['imgFile'])) {
-    $text;
+if (isset($_POST['memotext'])) {
+    // テキストを受け取る
+    $text = $_POST['memotext'];
+
+    // 画像アップロードを受け取る
     $imgpath;
-    if (empty($_POST['text'])) {
-        $text = "";
-    } else {
-        $text = $_POST['text'];
-    }
-    if (array_count_values($_FILES['imgFile']) > 1) {
-        $imgFile = $_FILES['imgFile'];
-        $dirPath = generateDirPath($memoData->getName(), DIR_NAME);
-        $imgpath = imageUpload($dirPath, $imgFile);
-    } else {
+    $imgFile = $_FILES['imgFile'];
+    try {
+        // 画像をメモデータと同じフォルダ内にアップロードし、パスを取得する
+        $imgpath = imageUpload($memoData->getDirPath(), $imgFile);
+    } catch (NoInputException $e) {
         $imgpath = "";
+    } catch (InvalidFileException $e) {
+        popUpAlert($e->getMessage());
+
+        header("Location: memoApp.php");
+        exit();
     }
-    if (empty($text) && empty($imgpath)) {
+    try {
+        // メモを追加する
+        $memoData->addMemo($text, $imgpath);
+    } catch (RuntimeException $e) {
+        popUpAlert($e->getMessage());
         
+        header("Location: memoApp.php");
+        exit();
     }
-    
-    $memoData->addMemo($text, $imgpath);
-    $memoData->saveFile();
-    $_SESSION['memoData'] = serialize($memoData);
     
     header("Location: memoApp.php");
     exit;
 }
 
+// メモの削除を受け取る
 if (isset($_POST['id']) && is_array($_POST['id'])) {
     $memoData->deleteMemo($_POST['id']);
-    $memoData->saveFile();
-    $_SESSION['memoData'] = serialize($memoData);
     
     header("Location: memoApp.php");
     exit;
@@ -81,48 +107,55 @@ if (isset($_POST['id']) && is_array($_POST['id'])) {
 </head>
 <body>
 	<div>
-	<h1>MEMO</h1>
-	
-	<!-- 名前を入力 -->
-	Name<br>
-	<form method="post">
-	<input type="text" name="memoname" autocomplete="off"></input>
-	<input type="submit" value="OK">
-	</form>
-	
-	<!-- メモデータを表示 -->
+		<h1>MEMO</h1>
+
+		<!-- 名前を入力 -->
+		Name (半角英数字のみ)<br>
+		<form method="post">
+			<input type="text" name="memoname" autocomplete="off"></input> <input
+				type="submit" value="OK">
+		</form>
+
+		<!-- メモデータを表示 -->
 	<?php if(!empty($memoData)): ?>
-	<?php $memoData = $memoData ?>
-	<h2><?php echo $memoData->getName() ?> さん</h2>
+	<h2><?php echo $memoData->getMemoName() ?> さん</h2>
 	
 	<?php if(count($memoData->getData())>0) :?>
+	
 		<form method="post">
 		<table>
 		<?php foreach($memoData->getData() as $d): ?>
-		<tr>
+    		<tr>
 			<td><?php echo($d[DATE])?></td>
-			<td><?php echo($d[TEXT])?></td>
-			<td><label><input type="checkbox" name="id[]" value="<?php echo($d[ID])?>">delete</label></td>
-		</tr>
-		<?php if(!empty($d[IMG_FILE])): ?>
-		<tr>
-			<td><img src="<?php echo($d[IMG_FILE]) ?>"></td>
-		</tr>
-		<?php endif ?>
+			<td><label>
+			<input type="checkbox" name="id[]"value="<?php echo($d[ID])?>">
+			delete</label></td>
+			</tr>
+    		<?php if(!empty($d[TEXT])): ?>
+    		<tr>
+			<td style="word-break: break-all;"><?php echo($d[TEXT])?></td>
+			</tr>
+    		<?php endif ?>
+    		<?php if(!empty($d[IMG_FILE])): ?>
+        		<tr>
+				<td><img src="<?php echo($d[IMG_FILE]) ?>"></td>
+				</tr>
+			<?php endif ?>
 		<?php endforeach; ?>
 		</table>
-    	<input type="submit" value="削除">
-    	</form>
-    	<hr>
+		<input type="submit" value="削除">
+		</form>
+		<hr>
 	<?php endif; ?>
-    	
-    	<!-- メモを追加 -->
-    	<form method="post" enctype="multipart/form-data" >
-    	<input type="hidden" name="max_file_size" value="2097152">
-    	<input type="file" name="imgFile"><br>
-    	<textarea name="text"></textarea><br>
-    	<input type="submit" value="メモを追加">
-    	</form>
+    <!-- メモデータ表示ここまで -->
+    
+		<!-- 画像・テキストをメモに追加する入力フォーム -->
+		<form method="post" enctype="multipart/form-data">
+			<input type="hidden" name="max_file_size" value="2097152">
+			<input type="file" name="imgFile"><br>
+			<textarea name="memotext"></textarea>
+			<br><input type="submit" value="メモを追加">
+		</form>
 	<?php endif; ?>
 	</div>
 </body>
