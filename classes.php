@@ -1,7 +1,12 @@
 <?php
-    require_once '.\memoApp.php';
-
-class Memo
+/*
+ * 参考URL： https://code-notes.com/lesson/4
+ * 
+ * メモデータを管理するクラス。
+ * メモの追加と削除、ファイルの作成・保存・読み込みをする。
+ * メモファイルは各keyのデータをタブで区切り、一つのメモにつき一行で保存する。
+ */
+class MemoManager
 {
     // メモデータを保存するフォルダ名
     private $memoName;
@@ -10,7 +15,7 @@ class Memo
     // メモデータを連想配列型で格納する
     private $data = array();
     
-    /* 
+    /**
      * memoNameが有効な文字列なら$memoNameに格納する
      * データ用のディレクトリ内にmemoNameのフォルダを作成しディレクトリのパスを$dirPathに格納する
      * memoNameのディレクトリにメモデータを保存するメモファイルを作成する
@@ -48,7 +53,7 @@ class Memo
         }
     }
     
-    /*
+    /**
      *　memoNameを返す
      * @return string
      */
@@ -56,7 +61,7 @@ class Memo
     {
         return $this->memoName;
     }
-    /*
+    /**
      * メモデータが保存されているディレクトリのパスを返す
      * @return string
      */
@@ -64,7 +69,7 @@ class Memo
     {
         return $this->dirPath;
     }
-    /*
+    /**
      * メモデータの連想配列を返す
      * @return array
      */
@@ -72,7 +77,7 @@ class Memo
     {
         return $this->data;
     }
-    /*
+    /**
      * ファイルからメモデータを読み込み$dataに連想配列型で格納する
      * @throws InvalidFileException
      */
@@ -104,7 +109,7 @@ class Memo
         }
     }
     
-    /*
+    /**
      * メモデータをファイルに保存する
      */
     private function saveFile(): void
@@ -112,14 +117,18 @@ class Memo
         // 各データをタブで分割した文字列に変換する
         $lines = '';
         foreach ($this->data as $d) {
-            $lines = $d[ID]."\t".$d[DATE]."\t".$d[TEXT]."\t".$d[IMG_FILE]."\n".$lines;
+            $lines = 
+                $d[ID]."\t".
+                $d[DATE]."\t".
+                $d[TEXT]."\t".
+                $d[IMG_FILE]."\n".$lines;
         }
         
         // ファイルに保存する
         file_put_contents($this->dirPath.SAVE_NAME, $lines);
     }
     
-    /*
+    /**
      * メモを追加する
      * @param string $text
      * @param string $imgPath
@@ -150,7 +159,7 @@ class Memo
         $this->saveFile();
     }
     
-    /*
+    /**
      * 入力されたテキストをメモデータに有効な文字列に変換して返す
      * @param string $text
      * @return string 変換した文字列
@@ -167,7 +176,7 @@ class Memo
         return $text;
     }
     
-    /*
+    /**
      * 指定したidのメモを削除する
      * @param array $deleteId 削除するメモのIDの配列
      */
@@ -178,6 +187,7 @@ class Memo
         for ($i = 0; $i < $dataNum; $i++) {
             $d = $this->data[$i];
             if (in_array($d[ID], $deleteIds)) {
+                // 画像ファイルがあれば削除する
                 if (is_readable($d[IMG_FILE])) {
                 unlink($d[IMG_FILE]);
                 }

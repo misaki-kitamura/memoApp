@@ -7,6 +7,3 @@ class InvalidNameException extends RuntimeException{}
 class InvalidFileException extends RuntimeException{}
 
 class TextTooLongException extends RuntimeException{}
-
-class FileNotFoundException extends RuntimeException{}
-
