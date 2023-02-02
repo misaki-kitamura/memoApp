@@ -29,6 +29,7 @@ if (!empty($_SESSION['memoData'])) {
         // 表示させるメモデータをファイルから読み込む
         $memoData->loadFile();
     } catch(InvalidFileException $e) {
+        // 読み込みに失敗したらセッションから削除する
         popUpAlert($e->getMessage());
         unset($_SESSION['memoData']);
         
@@ -41,13 +42,14 @@ if (!empty($_SESSION['memoData'])) {
 if (isset($_POST['memoname'])) {
     $memoName = $_POST['memoname'];
     try {
-        $memoData = new Memo($memoName);
+        $memoData = new MemoManager($memoName);
     } catch (RuntimeException $e) {
         popUpAlert($e->getMessage());
         
         header("Location: memoApp.php");
         exit;
     }
+    // インスタンスの生成に成功したらセッションに保存する
     $_SESSION['memoData'] = serialize($memoData);
     
     header("Location: memoApp.php");
