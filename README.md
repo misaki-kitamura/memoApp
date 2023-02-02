@@ -41,6 +41,9 @@
 
 ・テキストやファイルに制限を付け、想定しないものは例外を発生させるようにした
 
+#image
+![2023_20612_localhost](https://user-images.githubusercontent.com/115851551/216318888-2a72c4c7-ca17-4ae3-ace9-acc14c8c6500.jpeg)
+
 #
 javaにしなかった理由について
 
