@@ -40,6 +40,14 @@ if (!empty($_SESSION['memoData'])) {
     }
 }
 
+// 名前のリストを格納する
+$nameList;
+$dirPath = './'.DIR_NAME;
+if (is_readable($dirPath)) {
+    // ディレクトリから名前のリストを取得する
+    $nameList = array_diff(scandir($dirPath), array(".", ".."));
+}
+
 // memoNameを受け取る
 if (isset($_POST['memoname'])) {
     $memoName = $_POST['memoname'];
@@ -116,8 +124,15 @@ if (isset($_POST['id']) && is_array($_POST['id'])) {
 		<!-- 名前を入力 -->
 		Name (半角英数字のみ)<br>
 		<form method="post">
-			<input type="text" name="memoname" autocomplete="off"></input> <input
-				type="submit" value="OK">
+		<input type="text" name="memoname" list="namelist" autocomplete="off"></input>
+		<?php if(!$nameList===false): ?>
+		<datalist id="namelist">
+		<?php foreach($nameList as $memoName): ?>
+		<option value="<?php echo($memoName)?>"><?php echo($memoName)?></option>
+		<?php endforeach; ?>
+		</datalist>
+		<?php endif ?>
+			<input type="submit" value="OK">
 		</form>
 
 		<!-- メモデータを表示 -->
@@ -125,7 +140,7 @@ if (isset($_POST['id']) && is_array($_POST['id'])) {
 	<h2><?php echo $memoData->getMemoName() ?> さん</h2>
 	
 	<?php if(count($memoData->getData())>0) :?>
-	
+
 		<form method="post">
 		<table>
 		<?php foreach($memoData->getData() as $d): ?>
